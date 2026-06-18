@@ -1,0 +1,1 @@
+ALTER TABLE assets ADD COLUMN qr_code_url VARCHAR(255) NULL COMMENT '二维码图片地址';

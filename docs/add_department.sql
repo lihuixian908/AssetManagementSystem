@@ -1,0 +1,1 @@
+ALTER TABLE assets ADD COLUMN department VARCHAR(100) NULL COMMENT '所属部门';

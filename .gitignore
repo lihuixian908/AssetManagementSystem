@@ -1,0 +1,27 @@
+# Python
+asset-server/.venv/
+asset-server/__pycache__/
+asset-server/**/__pycache__/
+asset-server/*.db
+
+# Node
+asset-web/node_modules/
+asset-web/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Uploads
+asset-server/uploads/
