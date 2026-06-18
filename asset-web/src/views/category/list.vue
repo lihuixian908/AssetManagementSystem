@@ -166,11 +166,11 @@ const fetchDevices = async () => {
     if (searchKeyword.value) p.keyword = searchKeyword.value
     const { data } = await getAssets(p)
     devices.value = data.data.items
-  } catch (e) { /* */ } finally { loading.value = false }
+  } catch (e) { ElMessage.error('操作失败') } finally { loading.value = false }
 }
 
-const fetchCategories = async () => { try { const { data } = await request.get('/categories', { params: { page: 1, page_size: 100 } }); categories.value = data.data.items } catch (e) { /* */ } }
-const fetchUsers = async () => { try { const { data } = await request.get('/users', { params: { page: 1, page_size: 100 } }); userList.value = data.data.items } catch (e) { /* */ } }
+const fetchCategories = async () => { try { const { data } = await request.get('/categories', { params: { page: 1, page_size: 100 } }); categories.value = data.data.items } catch (e) { ElMessage.error('操作失败') } }
+const fetchUsers = async () => { try { const { data } = await request.get('/users', { params: { page: 1, page_size: 100 } }); userList.value = data.data.items } catch (e) { ElMessage.error('操作失败') } }
 
 const selectDevice = async (d: Asset) => {
   selectedDevice.value = d

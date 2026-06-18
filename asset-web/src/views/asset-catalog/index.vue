@@ -226,8 +226,8 @@ const getCategoryName = (id: number) => { const c = categories.value.find(x => x
 const getStatusType = (s: string) => ({ normal: 'success', borrowed: 'warning', scrapped: 'danger' } as any)[s] || 'info'
 const getStatusLabel = (s: string) => ({ normal: '在库', borrowed: '已借出', scrapped: '已报废' } as any)[s] || s
 
-const fetchCategories = async () => { try { const { data } = await request.get('/categories', { params: { page: 1, page_size: 100 } }); categories.value = data.data.items } catch (e) { /* */ } }
-const fetchUsers = async () => { try { const { data } = await request.get('/users', { params: { page: 1, page_size: 100 } }); userList.value = data.data.items } catch (e) { /* */ } }
+const fetchCategories = async () => { try { const { data } = await request.get('/categories', { params: { page: 1, page_size: 100 } }); categories.value = data.data.items } catch (e) { ElMessage.error('操作失败') } }
+const fetchUsers = async () => { try { const { data } = await request.get('/users', { params: { page: 1, page_size: 100 } }); userList.value = data.data.items } catch (e) { ElMessage.error('操作失败') } }
 
 const fetchDevices = async () => {
   loading.value = true
@@ -238,7 +238,7 @@ const fetchDevices = async () => {
     if (activeCategory.value !== null) p.category_id = activeCategory.value
     const { data } = await getAssets(p)
     devices.value = data.data.items; pagination.total = data.data.total
-  } catch (e) { /* */ } finally { loading.value = false }
+  } catch (e) { ElMessage.error('操作失败') } finally { loading.value = false }
 }
 
 const handleSearch = () => { pagination.page = 1; fetchDevices() }
@@ -259,7 +259,7 @@ const handleSubmit = async () => {
     if (isEdit.value && editId.value) { await updateAsset(editId.value, payload); ElMessage.success('编辑成功') }
     else { await createAsset(payload); ElMessage.success('新增成功') }
     dialogVisible.value = false; fetchDevices()
-  } catch (e) { /* */ } finally { submitting.value = false }
+  } catch (e) { ElMessage.error('操作失败') } finally { submitting.value = false }
 }
 
 const handleDelete = async (row: Asset) => {
@@ -270,7 +270,7 @@ const handleScrap = async (row: Asset) => {
   try { await ElMessageBox.confirm(`确认报废设备【${row.name}】吗？`, '报废确认', { type: 'warning' }); await scrapAsset(row.id, '设备报废'); ElMessage.success('报废成功'); fetchDevices() } catch (e: any) { if (e !== 'cancel' && e !== 'close') console.error(e) }
 }
 
-const handleView = async (row: Asset) => { detailVisible.value = true; try { const { data } = await getAsset(row.id); currentDevice.value = data.data } catch (e) { /* */ } }
+const handleView = async (row: Asset) => { detailVisible.value = true; try { const { data } = await getAsset(row.id); currentDevice.value = data.data } catch (e) { ElMessage.error('操作失败') } }
 
 const handleExport = async () => {
   try {
@@ -278,7 +278,7 @@ const handleExport = async () => {
     const url = URL.createObjectURL(data)
     const a = document.createElement('a'); a.href = url; a.download = '资产列表.xlsx'; a.click()
     URL.revokeObjectURL(url); ElMessage.success('导出成功')
-  } catch (e) { /* */ }
+  } catch (e) { ElMessage.error('操作失败') }
 }
 
 const handleDownloadTemplate = () => {
@@ -297,7 +297,7 @@ const handleUpload = async (file: File) => {
     ElMessage.success('导入成功')
     await fetchCategories()
     fetchDevices()
-  } catch (e) { /* */ }
+  } catch (e) { ElMessage.error('操作失败') }
   return false
 }
 

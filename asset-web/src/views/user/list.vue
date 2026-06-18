@@ -188,7 +188,8 @@ const rules: FormRules = {
   real_name: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码6~20位', trigger: 'blur' },
+    { min: 8, max: 20, message: '密码8~20位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)/, message: '密码需包含字母和数字', trigger: 'blur' },
   ],
 }
 
@@ -288,7 +289,8 @@ const validateConfirmPwd = (_rule: any, value: string, callback: any) => {
 const pwdRules: FormRules = {
   new_password: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码6~20位', trigger: 'blur' },
+    { min: 8, max: 20, message: '密码8~20位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)/, message: '密码需包含字母和数字', trigger: 'blur' },
   ],
   confirm_password: [
     { required: true, message: '请确认密码', trigger: 'blur' },
