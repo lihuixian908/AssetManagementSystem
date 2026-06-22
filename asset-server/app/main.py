@@ -30,6 +30,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://192.168.2.20:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -39,6 +40,7 @@ app.add_middleware(
 uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads", "qrcode")
 os.makedirs(uploads_dir, exist_ok=True)
 os.makedirs(os.path.join(os.path.dirname(__file__), "..", "uploads", "photos"), exist_ok=True)
+os.makedirs(os.path.join(os.path.dirname(__file__), "..", "uploads", "check"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "uploads")), name="uploads")
 
 app.include_router(router)

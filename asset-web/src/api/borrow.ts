@@ -21,6 +21,18 @@ export const cancelBorrow = (record_id: number) => {
   return request.delete<ApiResponse>('/borrow/' + record_id)
 }
 
+export const getPendingBorrows = () => {
+  return request.get<ApiResponse>('/borrow/pending')
+}
+
+export const approveBorrow = (id: number) => {
+  return request.post<ApiResponse>(`/borrow/${id}/approve`)
+}
+
+export const rejectBorrow = (id: number) => {
+  return request.post<ApiResponse>(`/borrow/${id}/reject`)
+}
+
 export const getBorrowHistory = (asset_id: number) => {
   return request.get<ApiResponse>('/borrow/history/' + asset_id)
 }

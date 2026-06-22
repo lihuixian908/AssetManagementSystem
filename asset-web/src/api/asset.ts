@@ -22,23 +22,23 @@ export const deleteAsset = (id: number) => {
 }
 
 export const assignAsset = (id: number, user_id: number, description?: string) => {
-  return request.post<ApiResponse>(`/assets/${id}/assign`, null, { params: { user_id, description } })
+  return request.post<ApiResponse>(`/assets/${id}/assign`, { description }, { params: { user_id } })
 }
 
 export const returnAsset = (id: number, description?: string) => {
-  return request.post<ApiResponse>(`/assets/${id}/return`, null, { params: { description } })
+  return request.post<ApiResponse>(`/assets/${id}/return`, { description })
 }
 
 export const transferAsset = (id: number, department: string, user_id?: number, description?: string) => {
-  return request.post<ApiResponse>(`/assets/${id}/transfer`, null, { params: { department, user_id, description } })
+  return request.post<ApiResponse>(`/assets/${id}/transfer`, { description }, { params: { user_id } })
 }
 
 export const maintenanceAsset = (id: number, description?: string) => {
-  return request.post<ApiResponse>(`/assets/${id}/maintenance`, null, { params: { description } })
+  return request.post<ApiResponse>(`/assets/${id}/maintenance`, { description })
 }
 
 export const scrapAsset = (id: number, description?: string) => {
-  return request.post<ApiResponse>(`/assets/${id}/scrap`, null, { params: { description } })
+  return request.post<ApiResponse>(`/assets/${id}/scrap`, { description })
 }
 
 export const scanAsset = (id: number) => {

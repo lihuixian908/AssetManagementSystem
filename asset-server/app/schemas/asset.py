@@ -19,6 +19,8 @@ class AssetBase(BaseModel):
     description: str | None = None
     images: list | None = None
     qr_code_url: str | None = None
+    inventory_status: str = "未盘点"
+    inventory_image: str | None = None
 
 
 class AssetCreate(AssetBase):

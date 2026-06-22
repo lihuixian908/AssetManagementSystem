@@ -24,8 +24,8 @@
         <el-table-column prop="department" label="所属部门" width="120"><template #default="{ row }">{{ row.department || '-' }}</template></el-table-column>
         <el-table-column label="角色" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.role === 'admin' ? 'danger' : ''">
-              {{ row.role === 'admin' ? '管理员' : '普通用户' }}
+            <el-tag :type="row.role === 'admin' ? 'danger' : row.role === 'asset_admin' ? 'warning' : ''">
+              {{ row.role === 'admin' ? '系统管理员' : row.role === 'asset_admin' ? '资产管理员' : '普通员工' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -86,8 +86,9 @@
         </el-form-item>
         <el-form-item label="角色" prop="role">
           <el-select v-model="form.role" style="width: 100%">
-            <el-option label="管理员" value="admin" />
-            <el-option label="普通用户" value="user" />
+            <el-option label="系统管理员" value="admin" />
+            <el-option label="资产管理员" value="asset_admin" />
+            <el-option label="普通员工" value="user" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态" v-if="isEdit">

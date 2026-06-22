@@ -61,3 +61,12 @@ def require_admin(current_user: Annotated[User, Depends(get_current_user)]) -> U
             detail="权限不足",
         )
     return current_user
+
+
+def require_asset_admin(current_user: Annotated[User, Depends(get_current_user)]) -> User:
+    if current_user.role not in ("admin", "asset_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="权限不足",
+        )
+    return current_user

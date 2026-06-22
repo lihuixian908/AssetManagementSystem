@@ -27,8 +27,8 @@
       <div class="actions">
         <el-button type="warning" @click="handleBorrow" :disabled="asset.status !== 'normal'">出借</el-button>
         <el-button type="success" @click="handleReturn" :disabled="asset.status !== 'borrowed'">归还</el-button>
-        <el-button type="danger" @click="handleScrap" :disabled="asset.status === 'scrapped'">报废</el-button>
-        <el-button type="info" @click="handleChange">变动</el-button>
+        <el-button type="danger" @click="handleScrap" :disabled="asset.status === 'scrapped'" v-if="isAssetAdmin">报废</el-button>
+        <el-button type="info" @click="handleChange" v-if="isAssetAdmin">变动</el-button>
       </div>
     </el-card>
 
@@ -49,6 +49,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAsset, getAssets, scrapAsset } from '@/api/asset'
+import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
 import type { Asset, Category, User } from '@/types'
 import BorrowDialog from '@/components/BorrowDialog.vue'
@@ -57,6 +58,8 @@ import ChangeDialog from '@/components/ChangeDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
+const isAssetAdmin = computed(() => userStore.user?.role === 'admin' || userStore.user?.role === 'asset_admin')
 
 const asset = ref<Asset | null>(null)
 const loading = ref(true)

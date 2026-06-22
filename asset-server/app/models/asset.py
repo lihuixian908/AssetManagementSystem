@@ -25,3 +25,5 @@ class Asset(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="描述")
     images: Mapped[list | None] = mapped_column(JSON, nullable=True, comment="图片列表")
     qr_code_url: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="二维码图片地址")
+    inventory_status: Mapped[str] = mapped_column(String(20), nullable=False, default="未盘点", comment="盘点状态: 未盘点/已盘点/异常")
+    inventory_image: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="盘点照片URL")

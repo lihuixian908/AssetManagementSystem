@@ -30,4 +30,20 @@ body {
 .el-dialog {
   border-radius: 12px;
 }
+
+.el-image-viewer__wrapper {
+  z-index: 99999 !important;
+}
+
+.el-overlay {
+  z-index: 99998 !important;
+}
+
+.el-dialog__body {
+  overflow: visible !important;
+}
+
+.el-select__popper, .el-picker__popper, .el-popper {
+  z-index: 99999 !important;
+}
 </style>

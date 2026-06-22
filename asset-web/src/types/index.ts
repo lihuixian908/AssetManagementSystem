@@ -33,6 +33,8 @@ export interface Asset {
   description: string | null
   images: string[] | null
   qr_code_url: string | null
+  inventory_status: string
+  inventory_image: string | null
   created_at: string
   updated_at: string
 }

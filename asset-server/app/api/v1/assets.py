@@ -2,11 +2,11 @@ from typing import Annotated
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import SessionDep, get_current_active_user
+from app.api.deps import SessionDep, get_current_active_user, require_asset_admin, require_admin
 from app.models.user import User
 from app.models.asset import Asset
 from app.schemas.asset import AssetAction, AssetCreate, AssetInDB, AssetUpdate
@@ -48,7 +48,7 @@ def export_assets(db: SessionDep):
 async def import_assets(
     file: UploadFile = File(...),
     db: SessionDep = None,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
+    current_user: Annotated[User, Depends(require_asset_admin)] = None,
 ):
     from io import BytesIO
     from openpyxl import load_workbook
@@ -82,15 +82,24 @@ async def import_assets(
     ws = wb.active
     rows = list(ws.iter_rows(min_row=2, values_only=True))
 
+    # 找到最大资产编号，自动递增
+    last_code = db.execute(select(Asset.asset_code).order_by(Asset.asset_code.desc()).limit(1)).scalar_one_or_none()
+    if last_code and last_code.startswith("AST"):
+        try:
+            next_num = int(last_code[3:]) + 1
+        except ValueError:
+            next_num = 20260000
+    else:
+        next_num = 20260000
+
     errors: list[str] = []
     assets_to_add: list[Asset] = []
-    seen_codes: set[str] = set()
 
     for i, row in enumerate(rows, 2):
         if not row or not any(row):
             continue
         vals = [str(c).strip() if c else '' for c in row]
-        asset_code = vals[0] if len(vals) > 0 else ''
+        # 第1列资产编号忽略，自动生成；从第2列开始读取
         name = vals[1] if len(vals) > 1 else ''
         company_code = vals[2] if len(vals) > 2 else ''
         sn_val = vals[3] if len(vals) > 3 else ''
@@ -98,19 +107,12 @@ async def import_assets(
         dept = vals[5] if len(vals) > 5 else ''
         owner_name = vals[6] if len(vals) > 6 else ''
 
-        if not asset_code:
-            errors.append(f"第{i}行: 资产编号不能为空")
-            continue
         if not name:
-            errors.append(f"第{i}行({asset_code}): 设备名称不能为空")
+            errors.append(f"第{i}行: 设备名称不能为空")
             continue
 
-        # 查重
-        existing = db.execute(select(Asset).where(Asset.asset_code == asset_code)).scalar_one_or_none()
-        if existing or asset_code in seen_codes:
-            errors.append(f"第{i}行({asset_code}): 资产编号已存在")
-            continue
-        seen_codes.add(asset_code)
+        asset_code = f"AST{next_num:08d}"
+        next_num += 1
 
         category_id = cat_map.get(cat_name, uncat_id)
         user_id = user_map.get(owner_name)
@@ -137,6 +139,26 @@ async def import_assets(
     })
 
 
+from pydantic import BaseModel as PydanticBase
+class InvItem(PydanticBase):
+    id: int
+    inventory_status: str = "未盘点"
+    inventory_image: str | None = None
+
+@router.post("/inventory/save", response_model=Response)
+def save_inventory(items: list[InvItem], db: SessionDep, current_user: Annotated[User, Depends(get_current_active_user)]):
+    updated = 0
+    for item in items:
+        asset = db.get(Asset, item.id)
+        if asset:
+            asset.inventory_status = item.inventory_status
+            asset.inventory_image = item.inventory_image
+            db.add(asset)
+            updated += 1
+    db.commit()
+    return Response(data={"updated": updated}, message="盘点完成")
+
+
 @router.get("/{asset_id}", response_model=Response)
 def get_asset(asset_id: int, db: SessionDep):
     result = asset_service.get_asset(db, asset_id)
@@ -147,7 +169,7 @@ def get_asset(asset_id: int, db: SessionDep):
 def create_asset(
     asset_in: AssetCreate,
     db: SessionDep,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(require_asset_admin)],
 ):
     result = asset_service.create_asset(db, asset_in, current_user.real_name)
     return Response(data=result.model_dump())
@@ -158,7 +180,7 @@ def update_asset(
     asset_id: int,
     asset_in: AssetUpdate,
     db: SessionDep,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(require_asset_admin)],
 ):
     result = asset_service.update_asset(db, asset_id, asset_in, current_user.real_name)
     return Response(data=result.model_dump())
@@ -168,7 +190,7 @@ def update_asset(
 def delete_asset(
     asset_id: int,
     db: SessionDep,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(require_admin)],
 ):
     asset_service.delete_asset(db, asset_id)
     return Response(message="删除成功")
@@ -178,7 +200,7 @@ def delete_asset(
 def batch_delete_assets(
     ids: list[int],
     db: SessionDep,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(require_admin)],
 ):
     from sqlalchemy import select
     assets = db.execute(select(Asset).where(Asset.id.in_(ids))).scalars().all()
@@ -247,7 +269,7 @@ def scrap_asset(
     asset_id: int,
     action: AssetAction,
     db: SessionDep,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(require_asset_admin)],
 ):
     result = asset_service.scrap_asset(
         db, asset_id, current_user.real_name, action.description

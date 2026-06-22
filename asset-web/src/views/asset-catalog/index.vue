@@ -4,7 +4,13 @@
     <el-card>
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="设备名称/资产编号" clearable style="width: 240px" />
+          <el-input v-model="searchForm.keyword" placeholder="设备名称/资产编号" clearable style="width: 200px" />
+        </el-form-item>
+        <el-form-item label="公司编号">
+          <el-input v-model="searchForm.companyCode" placeholder="公司编号" clearable style="width: 150px" />
+        </el-form-item>
+        <el-form-item label="SN号">
+          <el-input v-model="searchForm.sn" placeholder="SN号" clearable style="width: 150px" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 140px">
@@ -16,7 +22,7 @@
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
-          <el-button type="success" @click="handleAdd">
+          <el-button type="success" @click="handleAdd" v-if="isAssetAdmin">
             <el-icon><Plus /></el-icon> 新增设备
           </el-button>
           <el-button type="info" @click="handleExport">
@@ -25,7 +31,7 @@
           <el-button type="warning" @click="handleDownloadTemplate">
             <el-icon><Document /></el-icon> 下载模板
           </el-button>
-          <el-upload :show-file-list="false" :before-upload="handleUpload" accept=".xlsx,.xls" style="display:inline-block;margin-left:8px">
+          <el-upload v-if="isAssetAdmin" :show-file-list="false" :before-upload="handleUpload" accept=".xlsx,.xls" style="display:inline-block;margin-left:8px">
             <el-button type="success"><el-icon><Upload /></el-icon> Excel导入</el-button>
           </el-upload>
         </el-form-item>
@@ -38,6 +44,7 @@
         <span class="filter-label">分类：</span>
         <el-button :type="activeCategory === null ? 'primary' : 'default'" size="small" @click="filterByCategory(null)">全部</el-button>
         <el-button v-for="cat in categories" :key="cat.id" :type="activeCategory === cat.id ? 'primary' : 'default'" size="small" @click="filterByCategory(cat.id)">{{ cat.name }}</el-button>
+        <el-button v-if="isAssetAdmin" link size="small" type="info" style="margin-left:4px" @click="openCatDialog"><el-icon><Setting /></el-icon> 管理分类</el-button>
       </div>
       <div class="filter-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0">
         <span class="filter-label">状态：</span>
@@ -51,10 +58,11 @@
     <!-- 设备表格（PC/平板） -->
     <el-card style="margin-top: 16px" v-if="!isMobile">
       <div style="margin-bottom: 8px" v-if="selectedIds.length > 0">
-        <el-button type="danger" @click="handleBatchDelete">批量删除（{{ selectedIds.length }}）</el-button>
+        <el-button type="danger" @click="handleBatchDelete" v-if="isAdmin">批量删除（{{ selectedIds.length }}）</el-button>
+        <el-button type="primary" @click="handleBatchPrint" v-if="isAssetAdmin">批量打印二维码（{{ selectedIds.length }}）</el-button>
       </div>
       <el-table :data="devices" v-loading="loading" border stripe @selection-change="onSelectionChange">
-        <el-table-column type="selection" width="45" />
+        <el-table-column type="selection" width="45" v-if="isAdmin" />
         <el-table-column prop="asset_code" label="资产编号" width="150" />
         <el-table-column label="公司编号" width="130"><template #default="{ row }">{{ row.company_code || '-' }}</template></el-table-column>
         <el-table-column label="SN号" width="130"><template #default="{ row }">{{ row.sn || '-' }}</template></el-table-column>
@@ -75,9 +83,9 @@
         <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-button link type="success" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleScrap(row)" v-if="row.status !== 'scrapped'">报废</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="success" @click="handleEdit(row)" v-if="isAssetAdmin">编辑</el-button>
+            <el-button link type="danger" @click="handleScrap(row)" v-if="isAssetAdmin && row.status !== 'scrapped'">报废</el-button>
+            <el-button link type="danger" @click="handleDelete(row)" v-if="isAdmin">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -100,15 +108,15 @@
         </div>
         <div style="margin-top: 8px; display: flex; gap: 8px">
           <el-button size="small" @click="handleView(d)">查看</el-button>
-          <el-button size="small" type="success" @click="handleEdit(d)">编辑</el-button>
-          <el-button size="small" type="danger" @click="handleScrap(d)" v-if="d.status !== 'scrapped'">报废</el-button>
+          <el-button size="small" type="success" @click="handleEdit(d)" v-if="isAssetAdmin">编辑</el-button>
+          <el-button size="small" type="danger" @click="handleScrap(d)" v-if="isAssetAdmin && d.status !== 'scrapped'">报废</el-button>
         </div>
       </el-card>
       <el-pagination v-model:current-page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" layout="prev, pager, next" @current-change="fetchDevices" size="small" style="justify-content: center; margin-top: 8px" />
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑设备' : '新增设备'" :width="isMobile ? '95%' : '750px'" @closed="resetForm">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑设备' : '新增设备'" :width="isMobile ? '95%' : '750px'" @closed="resetForm" append-to-body>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="90px">
         <el-row :gutter="16">
           <el-col :xs="24" :md="12"><el-form-item label="资产编号" prop="asset_code"><el-input v-model="form.asset_code" /></el-form-item></el-col>
@@ -120,19 +128,19 @@
         </el-row>
         <el-row :gutter="16">
           <el-col :xs="24" :md="12">
-            <el-form-item label="分类"><el-select v-model="form.category_id" style="width: 100%"><el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" /></el-select></el-form-item>
+            <el-form-item label="分类"><el-select v-model="form.category_id" style="width: 100%" :teleported="true"><el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" /></el-select></el-form-item>
           </el-col>
           <el-col :xs="24" :md="12">
-            <el-form-item label="状态"><el-select v-model="form.status" style="width: 100%"><el-option label="在库" value="normal" /><el-option label="已借出" value="borrowed" /><el-option label="已报废" value="scrapped" /></el-select></el-form-item>
+            <el-form-item label="状态"><el-select v-model="form.status" style="width: 100%" :teleported="true"><el-option label="在库" value="normal" /><el-option label="已借出" value="borrowed" /><el-option label="已报废" value="scrapped" /></el-select></el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :xs="24" :md="12"><el-form-item label="所属部门"><el-input v-model="form.department" /></el-form-item></el-col>
-          <el-col :xs="24" :md="12"><el-form-item label="负责人"><el-select v-model="form.user_id" clearable style="width: 100%"><el-option v-for="u in userList" :key="u.id" :label="u.real_name" :value="u.id" /></el-select></el-form-item></el-col>
+          <el-col :xs="24" :md="12"><el-form-item label="负责人"><el-select v-model="form.user_id" clearable style="width: 100%" :teleported="true"><el-option v-for="u in userList" :key="u.id" :label="u.real_name" :value="u.id" /></el-select></el-form-item></el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :xs="24" :md="12"><el-form-item label="存放位置"><el-input v-model="form.location" /></el-form-item></el-col>
-          <el-col :xs="24" :md="12"><el-form-item label="采购日期"><el-date-picker v-model="form.purchase_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" /></el-form-item></el-col>
+          <el-col :xs="24" :md="12"><el-form-item label="采购日期"><el-date-picker v-model="form.purchase_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" teleported /></el-form-item></el-col>
         </el-row>
         <el-form-item label="备注"><el-input v-model="form.description" type="textarea" :rows="3" /></el-form-item>
       </el-form>
@@ -171,12 +179,37 @@
         <el-button type="primary" size="small" @click="downloadQr">下载二维码</el-button>
       </div>
     </el-dialog>
+
+    <!-- 分类管理弹窗 -->
+    <el-dialog v-model="catDialogVisible" title="管理分类" width="500px">
+      <el-button type="primary" size="small" @click="addCat" style="margin-bottom:12px">新增分类</el-button>
+      <el-table :data="categories" border stripe size="small">
+        <el-table-column prop="name" label="分类名称" />
+        <el-table-column prop="code" label="编码" width="100" />
+        <el-table-column label="操作" width="80">
+          <template #default="{ row }"><el-button link type="danger" size="small" @click="delCat(row)">删除</el-button></template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
+    <!-- 分类表单子弹窗 -->
+    <el-dialog v-model="catFormVisible" :title="editCatId ? '编辑分类' : '新增分类'" width="380px" append-to-body>
+      <el-form label-width="80px">
+        <el-form-item label="分类名称"><el-input v-model="catForm.name" /></el-form-item>
+        <el-form-item label="分类编码"><el-input v-model="catForm.code" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="catFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveCat">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/stores/user'
 import type { FormInstance, FormRules } from 'element-plus'
 import { getAssets, getAsset, createAsset, updateAsset, deleteAsset, scrapAsset } from '@/api/asset'
 import request from '@/api/request'
@@ -186,8 +219,18 @@ import AssetTimeline from '@/components/AssetTimeline.vue'
 const isMobile = ref(window.innerWidth < 768)
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth < 768 })
 
+const userStore = useUserStore()
+const isAdmin = computed(() => userStore.user?.role === 'admin')
+const isAssetAdmin = computed(() => userStore.user?.role === 'admin' || userStore.user?.role === 'asset_admin')
+
 const selectedIds = ref<number[]>([])
 const onSelectionChange = (rows: any[]) => { selectedIds.value = rows.map(r => r.id) }
+const handleBatchPrint = () => {
+  const ids = selectedIds.value.join(',')
+  const win = window.open(`/api/v1/qrcode/batch-print?ids=${ids}`, '_blank')
+  if (win) setTimeout(() => win.print(), 1000)
+}
+
 const handleBatchDelete = async () => {
   try {
     await ElMessageBox.confirm(`确认删除选中的 ${selectedIds.value.length} 台设备吗？`, '批量删除', { type: 'warning' })
@@ -205,7 +248,7 @@ const loading = ref(false)
 const pagination = reactive({ page: 1, page_size: 10, total: 0 })
 const activeCategory = ref<number | null>(null)
 
-const searchForm = reactive({ keyword: '', status: '' })
+const searchForm = reactive({ keyword: '', companyCode: '', sn: '', status: '' })
 
 const dialogVisible = ref(false)
 const isEdit = ref(false)
@@ -236,17 +279,20 @@ const fetchDevices = async () => {
     if (searchForm.keyword) p.keyword = searchForm.keyword
     if (searchForm.status) p.status_filter = searchForm.status
     if (activeCategory.value !== null) p.category_id = activeCategory.value
+    if (searchForm.companyCode) p.company_code = searchForm.companyCode
+    if (searchForm.sn) p.sn = searchForm.sn
     const { data } = await getAssets(p)
     devices.value = data.data.items; pagination.total = data.data.total
   } catch (e) { ElMessage.error('操作失败') } finally { loading.value = false }
 }
 
 const handleSearch = () => { pagination.page = 1; fetchDevices() }
-const handleReset = () => { searchForm.keyword = ''; searchForm.status = ''; activeCategory.value = null; pagination.page = 1; fetchDevices() }
+const handleReset = () => { searchForm.keyword = ''; searchForm.companyCode = ''; searchForm.sn = ''; searchForm.status = ''; activeCategory.value = null; pagination.page = 1; fetchDevices() }
 const filterByCategory = (id: number | null) => { activeCategory.value = id; pagination.page = 1; fetchDevices() }
 const filterByStatus = (s: string) => { searchForm.status = s; pagination.page = 1; fetchDevices() }
 
-const resetForm = () => { form.asset_code = ''; form.company_code = ''; form.sn = ''; form.name = ''; form.category_id = 1; form.status = 'normal'; form.department = ''; form.user_id = null; form.location = ''; form.purchase_date = ''; form.description = ''; isEdit.value = false; editId.value = null; formRef.value?.resetFields() }
+const getDefaultCatId = () => { const c = categories.value.find(x => x.code === 'UNCAT' || x.name === '待分类'); return c?.id || 1 }
+const resetForm = () => { form.asset_code = ''; form.company_code = ''; form.sn = ''; form.name = ''; form.category_id = getDefaultCatId(); form.status = 'normal'; form.department = ''; form.user_id = null; form.location = ''; form.purchase_date = ''; form.description = ''; isEdit.value = false; editId.value = null; formRef.value?.resetFields() }
 const handleAdd = () => { resetForm(); dialogVisible.value = true }
 const handleEdit = (row: Asset) => { resetForm(); isEdit.value = true; editId.value = row.id; form.asset_code = row.asset_code; form.company_code = row.company_code || ''; form.sn = row.sn || ''; form.name = row.name; form.category_id = row.category_id; form.status = row.status; form.department = row.department || ''; form.user_id = row.user_id; form.location = row.location || ''; form.purchase_date = row.purchase_date || ''; form.description = row.description || ''; dialogVisible.value = true }
 
@@ -267,7 +313,7 @@ const handleDelete = async (row: Asset) => {
 }
 
 const handleScrap = async (row: Asset) => {
-  try { await ElMessageBox.confirm(`确认报废设备【${row.name}】吗？`, '报废确认', { type: 'warning' }); await scrapAsset(row.id, '设备报废'); ElMessage.success('报废成功'); fetchDevices() } catch (e: any) { if (e !== 'cancel' && e !== 'close') console.error(e) }
+  try { await ElMessageBox.confirm(`确认报废设备【${row.name}】吗？`, '报废确认', { type: 'warning' }); await scrapAsset(row.id, '设备报废'); ElMessage.success('报废成功'); fetchDevices() } catch (e: any) { if (e !== 'cancel' && e !== 'close') ElMessage.error('报废失败') }
 }
 
 const handleView = async (row: Asset) => { detailVisible.value = true; try { const { data } = await getAsset(row.id); currentDevice.value = data.data } catch (e) { ElMessage.error('操作失败') } }
@@ -299,6 +345,28 @@ const handleUpload = async (file: File) => {
     fetchDevices()
   } catch (e) { ElMessage.error('操作失败') }
   return false
+}
+
+// ========== 分类管理 ==========
+const catDialogVisible = ref(false)
+const catFormVisible = ref(false)
+const editCatId = ref<number | null>(null)
+const catForm = reactive({ name: '', code: '' })
+
+const openCatDialog = () => { catDialogVisible.value = true }
+const addCat = () => { editCatId.value = null; catForm.name = ''; catForm.code = ''; catFormVisible.value = true }
+const saveCat = async () => {
+  try {
+    if (editCatId.value) {
+      await request.put(`/categories/${editCatId.value}`, null, { params: { name: catForm.name, code: catForm.code } })
+    } else {
+      await request.post('/categories', null, { params: { name: catForm.name, code: catForm.code, parent_id: 0, sort_order: categories.value.length + 1 } })
+    }
+    catFormVisible.value = false; await fetchCategories(); ElMessage.success('保存成功')
+  } catch (e) { }
+}
+const delCat = async (row: any) => {
+  try { await ElMessageBox.confirm(`确认删除分类【${row.name}】？`, '提示', { type: 'warning' }); await request.delete(`/categories/${row.id}`); await fetchCategories(); ElMessage.success('删除成功') } catch (e: any) { if (e !== 'cancel' && e !== 'close') console.error(e) }
 }
 
 // ========== 二维码 ==========

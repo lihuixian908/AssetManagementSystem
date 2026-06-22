@@ -11,6 +11,8 @@ from app.models.user import User
 from app.models.category import Category
 from app.models.asset import Asset
 from app.models.record import AssetRecord
+from app.models.asset_borrow_record import AssetBorrowRecord
+from datetime import date
 
 
 def init_db():
@@ -120,7 +122,21 @@ def seed_data():
             db.add(asset)
         
         db.flush()
-        
+
+        # 为已借出设备创建出借记录
+        today = date.today()
+        borrows = [
+            (assets[7], user1, "A栋3楼"),
+            (assets[8], user2, "B栋2楼"),
+            (assets[9], user1, "网络机房"),
+            (assets[10], user2, "A栋1楼"),
+        ]
+        for a, u, loc in borrows:
+            db.add(AssetBorrowRecord(
+                asset_id=a.id, borrower=u.real_name, department=u.department,
+                borrow_date=today, status="borrowed", location=loc,
+            ))
+
         # 创建操作记录
         record_data = [
             (assets[0].id, user1.id, "create", "资产入库：联想ThinkPad X1 Carbon", "系统管理员"),

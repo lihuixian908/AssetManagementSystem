@@ -50,7 +50,7 @@
     </el-form>
     <template #footer>
       <el-button @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="submitting">确认出借</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="submitting">提交申请</el-button>
     </template>
   </el-dialog>
 </template>
@@ -150,7 +150,7 @@ const handleSubmit = async () => {
       photo_url,
       remark: form.remark || undefined,
     })
-    ElMessage.success('出借成功')
+    ElMessage.success('申请已提交，等待审批')
     emit('update:modelValue', false)
     emit('success')
   } catch (error) {
