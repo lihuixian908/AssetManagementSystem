@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.asset import Asset
 
-QR_BASE_URL = os.getenv("QR_BASE_URL", "http://localhost:3000")
+QR_BASE_URL = os.getenv("QR_BASE_URL", "http://192.168.2.7:3000")
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "qrcode")
 
 

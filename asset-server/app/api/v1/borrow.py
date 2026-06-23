@@ -32,18 +32,45 @@ def create_borrow(
         department=borrow_in.department,
         borrow_date=borrow_in.borrow_date or date.today(),
         expected_return_date=borrow_in.expected_return_date,
-        status="borrowed",
+        status="pending",
         location=borrow_in.location,
         photo_url=borrow_in.photo_url,
         remark=borrow_in.remark,
     )
-    asset.status = "borrowed"
     db.add(record)
-    db.add(asset)
     db.commit()
     db.refresh(record)
 
-    return Response(data={"id": record.id, "status": "borrowed"}, message="出借成功")
+    return Response(data={"id": record.id, "status": "pending"}, message="申请已提交，等待审批")
+
+
+@router.get("/pending", response_model=Response)
+def get_pending(db: SessionDep):
+    from sqlalchemy import select
+    query = select(AssetBorrowRecord, Asset.name, Asset.asset_code).join(Asset, AssetBorrowRecord.asset_id == Asset.id).where(AssetBorrowRecord.status == "pending").order_by(AssetBorrowRecord.created_at.desc())
+    rows = db.execute(query).all()
+    return Response(data=[{"id": r[0].id, "asset_id": r[0].asset_id, "asset_name": r[1], "asset_code": r[2], "borrower": r[0].borrower, "department": r[0].department, "location": r[0].location, "remark": r[0].remark, "created_at": str(r[0].created_at)} for r in rows])
+
+
+@router.post("/{record_id}/approve", response_model=Response)
+def approve_borrow(record_id: int, db: SessionDep, current_user: Annotated[User, Depends(get_current_active_user)]):
+    if current_user.role not in ("admin", "asset_admin"): raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="权限不足")
+    record = db.get(AssetBorrowRecord, record_id)
+    if not record or record.status != "pending": raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="申请不存在或已处理")
+    asset = db.get(Asset, record.asset_id)
+    if not asset or asset.status != "normal": raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="设备已被借出")
+    record.status = "borrowed"; asset.status = "borrowed"
+    db.add(record); db.add(asset); db.commit()
+    return Response(message="审批通过")
+
+
+@router.post("/{record_id}/reject", response_model=Response)
+def reject_borrow(record_id: int, db: SessionDep, current_user: Annotated[User, Depends(get_current_active_user)]):
+    if current_user.role not in ("admin", "asset_admin"): raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="权限不足")
+    record = db.get(AssetBorrowRecord, record_id)
+    if not record or record.status != "pending": raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="申请不存在或已处理")
+    record.status = "rejected"; db.add(record); db.commit()
+    return Response(message="已拒绝")
 
 
 @router.post("/return", response_model=Response)

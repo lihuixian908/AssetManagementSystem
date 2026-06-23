@@ -289,8 +289,12 @@ const uploadInvPhoto = async (row: any, file: File) => {
   cur.image = data.data.url; inventoryChanges.value.set(row.id, cur)
   return false
 }
-const markChecked = (row: any) => { const cur = inventoryChanges.value.get(row.id) || { status: getInvStatus(row), image: getInvImage(row) }; cur.status = '已盘点'; inventoryChanges.value.set(row.id, cur) }
-const markAbnormal = (row: any) => { const cur = inventoryChanges.value.get(row.id) || { status: getInvStatus(row), image: getInvImage(row) }; cur.status = '异常'; inventoryChanges.value.set(row.id, cur) }
+const markChecked = async (row: any) => {
+  try { await ElMessageBox.confirm(`确认设备【${row.name}】盘点正常？`, '盘点确认', { type: 'success' }); const cur = inventoryChanges.value.get(row.id) || { status: getInvStatus(row), image: getInvImage(row) }; cur.status = '已盘点'; inventoryChanges.value.set(row.id, cur); ElMessage.success('已标记为已盘点') } catch (e) { }
+}
+const markAbnormal = async (row: any) => {
+  try { await ElMessageBox.confirm(`确认设备【${row.name}】为异常？`, '异常确认', { type: 'warning' }); const cur = inventoryChanges.value.get(row.id) || { status: getInvStatus(row), image: getInvImage(row) }; cur.status = '异常'; inventoryChanges.value.set(row.id, cur); ElMessage.success('已标记为异常') } catch (e) { }
+}
 const onChangeSuccess = () => { changeVisible.value = false; refreshDevice() }
 
 onMounted(async () => { await fetchCategories(); fetchUsers(); fetchDevices(); fetchPending() })
