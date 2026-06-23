@@ -93,7 +93,7 @@
               <el-button type="warning" @click="handleBorrow" :disabled="selectedDevice.status !== 'normal'">
                 <el-icon><Switch /></el-icon> 出借
               </el-button>
-              <el-button type="success" @click="handleReturn" :disabled="selectedDevice.status !== 'borrowed'">
+              <el-button type="success" @click="handleReturn" :disabled="selectedDevice.status !== 'borrowed' || !canReturn">
                 <el-icon><CircleCheck /></el-icon> 归还
               </el-button>
               <el-button type="danger" @click="handleCancelBorrow" :disabled="selectedDevice.status !== 'borrowed'" plain>
@@ -164,6 +164,11 @@ import ReturnDialog from '@/components/ReturnDialog.vue'
 
 const userStore = useUserStore()
 const isAdmin = computed(() => userStore.user?.role === 'admin' || userStore.user?.role === 'asset_admin')
+const canReturn = computed(() => {
+  if (isAdmin.value) return true
+  const active = borrowRecords.value.find((r: any) => r.status === 'borrowed')
+  return active && userStore.user?.real_name === (active as any)._borrower
+})
 const inventoryActive = ref(false)
 
 const loading = ref(false)
@@ -230,7 +235,7 @@ const selectDevice = async (d: Asset) => {
   else if (r.status === 'rejected') { title = '已拒绝'; desc = `${r.borrower} 的出借申请被拒绝` }
   else { title = '设备归还'; desc = `${r.borrower} 归还设备` }
   if (r.remark) desc += ` | 备注: ${r.remark}`
-  return { id: r.id, time: r.borrow_date || r.created_at, title, desc, status, photo_url: r.photo_url, return_photo_url: r.return_photo_url }
+  return { id: r.id, time: r.borrow_date || r.created_at, title, desc, status, photo_url: r.photo_url, return_photo_url: r.return_photo_url, _borrower: r.borrower }
 }) } catch (e) { borrowRecords.value = [] }
   // 查变动记录
   try { const { data } = await getChangeHistory(d.id); changeRecords.value = data.data.map((r: any) => ({ id: r.id, time: r.created_at, title: r.change_type_label, desc: `${r.change_type === 'owner' ? (userList.value.find(u => String(u.id) === r.old_value)?.real_name || r.old_value || '无') : (r.old_value || '无')} → ${r.change_type === 'owner' ? (userList.value.find(u => String(u.id) === r.new_value)?.real_name || r.new_value) : r.new_value}` + (r.remark ? ` | 备注: ${r.remark}` : ''), change_type: r.change_type })) } catch (e) { changeRecords.value = [] }

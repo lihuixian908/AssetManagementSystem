@@ -97,6 +97,11 @@ def return_borrow(
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到出借记录")
 
+    # 普通用户只能归还自己借出的设备，管理员可直接归还
+    is_admin = current_user.role in ("admin", "asset_admin")
+    if not is_admin and record.borrower != current_user.real_name:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="只能归还自己借出的设备")
+
     record.actual_return_date = date.today()
     record.status = "returned"
     if return_photo_url:
